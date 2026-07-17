@@ -1,6 +1,7 @@
-fastapi==0.110.0
-uvicorn==0.28.0
-yfinance==0.2.38
-pandas==2.2.1
-pydantic==2.6.4
-pydantic-settings==2.2.1
+fastapi
+uvicorn
+yfinance
+pandas
+pydantic
+pydantic-settings
+requests

@@ -1,73 +1,73 @@
-import numpy as np
+import os
 import pandas as pd
-from xgboost import XGBClassifier
-from sklearn.preprocessing import StandardScaler
+import joblib
+from pathlib import Path  # <-- Indestructible cross-platform paths
 
 class MLEngine:
     def __init__(self):
-        # We initialize the model with standard hyperparameters for financial tabular data
-        self.model = XGBClassifier(
-            n_estimators=100,
-            max_depth=3,
-            learning_rate=0.05,
-            random_state=42,
-            eval_metric='logloss'
-        )
-        self.scaler = StandardScaler()
-        self.is_trained = False
+        # Using Path(__file__) guarantees this works on Windows, Linux, and Cloud Containers
+        BASE_DIR = Path(__file__).resolve().parent
+        model_path = BASE_DIR / ".." / "models" / "xgboost_global.pkl"
+        
+        if model_path.exists():
+            self.model = joblib.load(model_path)
+            self.is_trained = True
+        else:
+            self.model = None
+            self.is_trained = False
 
-    def _prepare_data(self, df: pd.DataFrame):
+    def _prepare_features(self, df: pd.DataFrame):
         """
-        Cleans the DataFrame, creates the binary target variable (1 if tomorrow's 
-        close is higher than today's, 0 otherwise), and splits features.
+        Injects the exact same Context Awareness features that the model was trained on.
         """
-        # Create a copy to avoid mutating the original dataframe
         data = df.copy()
         
-        # Sort by date to ensure historical chronological order
+        # Sort chronologically and drop the string date
         if 'Date' in data.columns:
             data = data.sort_values('Date').reset_index(drop=True)
             data = data.drop(columns=['Date'])
             
-        # Target: Did the price go UP tomorrow? (Shift close prices back by 1)
-        data['Target'] = (data['Close'].shift(-1) > data['Close']).astype(int)
+        # Inject Context Features
+        data['volatility_width'] = (data['bb_upper'] - data['bb_lower']) / data['bb_middle']
+        data['volume_sma_20'] = data['Volume'].rolling(window=20).mean()
+        data['volume_spike_ratio'] = data['Volume'] / data['volume_sma_20']
         
-        # Drop rows with NaN values (like the last row which has no tomorrow target, 
-        # or early rows missing rolling indicators)
-        data = data.dropna()
+        # Clean up NaNs from rolling averages so the model doesn't crash
+        data.bfill(inplace=True)
         
-        if len(data) < 10:
-            raise ValueError("Not enough historical data to extract features and train.")
-            
-        X = data.drop(columns=['Target'])
-        y = data['Target']
-        
-        return X, y
+        return data
 
     def train_and_predict(self, df: pd.DataFrame):
         """
-        Trains the model on the historical data and predicts the next directional movement.
-        Also returns the key features that drove the decision.
+        Runs lightning-fast inference using the pre-trained global model.
         """
-        # 1. Prepare Features and Targets
-        X, y = self._prepare_data(df)
+        if not self.is_trained:
+            return {
+                "direction": "ERROR", 
+                "confidence": 0, 
+                "reasoning": ["Model brain file missing from server."]
+            }
+
+        # IPO SAFETY: If the stock is too new and missing indicators, catch it before it crashes XGBoost
+        required_columns = ['bb_upper', 'bb_lower', 'bb_middle', 'Volume', 'rsi']
+        if not all(col in df.columns for col in required_columns):
+            return {
+                "direction": "NEUTRAL",
+                "confidence": 50.0,
+                "reasoning": ["Insufficient historical data available for this asset to run ML predictions."]
+            }
+
+        # 1. Prepare features
+        X = self._prepare_features(df)
         
-        # Keep the absolute latest row of data *before* fitting to predict tomorrow's move
-        # (We use the real latest data point, matching the features available right now)
+        # 2. Extract TODAY's data to predict TOMORROW
         latest_features = X.iloc[[-1]]
         
-        # 2. Train the model on history
-        # Note: In production, you'd load a pre-trained model, but fitting a light 
-        # XGBoost on a single stock's tabular history is fast enough for development!
-        self.model.fit(X, y)
-        self.is_trained = True
-        
         # 3. Predict Probability
-        # predict_proba returns [prob_of_0, prob_of_1]
         probabilities = self.model.predict_proba(latest_features)[0]
         up_probability = float(probabilities[1])
         
-        # Determine Direction and Confidence
+        # 4. Determine Direction
         if up_probability >= 0.55:
             direction = "UP"
             confidence = up_probability * 100
@@ -78,48 +78,50 @@ class MLEngine:
             direction = "NEUTRAL"
             confidence = 50.0
 
-        # 4. The Literacy Layer: Generate SHAP-lite Explanations
-        # Get feature importances from XGBoost
+        # 5. The Smarter Literacy Layer
         importances = self.model.feature_importances_
         feature_names = X.columns
         
-        # Map them together and sort by importance weight
-        feature_ranking = sorted(
-            zip(feature_names, importances), 
-            key=lambda x: x[1], 
-            reverse=True
-        )
+        # Rank features by how heavily the AI relied on them for this specific prediction
+        feature_ranking = sorted(zip(feature_names, importances), key=lambda x: x[1], reverse=True)
         
-        # Generate plain English reasonings for the top 3 driving features
         reasoning = []
         latest_vals = latest_features.iloc[0]
         
+        # Translate the top 3 driving features into English
         for feature, weight in feature_ranking[:3]:
             if weight == 0:
                 continue
-            
-            if feature == 'rsi':
+                
+            if feature == 'volatility_width':
+                val = latest_vals['volatility_width']
+                if val > 0.10:
+                    reasoning.append("High historical volatility detected, suggesting an erratic price environment.")
+                else:
+                    reasoning.append("Bollinger Bands are tight, indicating stable price consolidation.")
+                    
+            elif feature == 'volume_spike_ratio':
+                val = latest_vals['volume_spike_ratio']
+                if val > 1.5:
+                    reasoning.append(f"Trading volume is surging ({val:.1f}x normal), signaling strong institutional participation.")
+                elif val < 0.8:
+                    reasoning.append("Trading volume is below average, indicating a lack of strong directional conviction.")
+                    
+            elif feature == 'rsi':
                 val = latest_vals['rsi']
                 if val < 30:
                     reasoning.append(f"RSI is highly oversold ({val:.1f}), prompting a potential upward technical bounce.")
                 elif val > 70:
                     reasoning.append(f"RSI indicates overbought conditions ({val:.1f}), flashing a short-term correction risk.")
-                else:
-                    reasoning.append(f"RSI is stabilizing at {val:.1f}, supporting current momentum weights.")
                     
             elif 'macd' in feature:
-                # Assuming macd and macd_signal columns exist from PR #1
                 val = latest_vals.get('macd', 0)
                 sig = latest_vals.get('macd_signal', 0)
                 if val > sig:
-                    reasoning.append("MACD line crossed above the signal line, confirming bullish momentum.")
+                    reasoning.append("MACD line remains above the signal line, confirming bullish momentum.")
                 else:
-                    reasoning.append("MACD line remains below the signal line, suggesting lingering bearish pressure.")
-                    
-            elif 'MA' in feature or 'ma' in feature:
-                reasoning.append(f"The asset's position relative to its Moving Averages is acting as a primary weight container.")
+                    reasoning.append("MACD line is below the signal line, suggesting lingering bearish pressure.")
 
-        # Default fallbacks if no features have weights yet
         if not reasoning:
             reasoning.append("The model is weighing macro historical price consolidation patterns equally.")
 
@@ -129,5 +131,5 @@ class MLEngine:
             "reasoning": reasoning
         }
 
-# Instantiate a singleton instance to use across routes
+# Instantiate the singleton
 ml_engine = MLEngine()

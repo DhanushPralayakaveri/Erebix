@@ -94,7 +94,7 @@ async def get_market_prediction(symbol: str):
         # 1. Fetch data using the shared helper function (defaulting to 1y window for ML stability)
         df, _ = fetch_and_prepare_df(symbol, period="1y")
         
-        # 2. Pass the data through the Machine Learning engine
+        # 2. Pass the data safely through the Machine Learning engine
         prediction_result = ml_engine.train_and_predict(df)
         
         return {
@@ -106,5 +106,9 @@ async def get_market_prediction(symbol: str):
         
     except HTTPException as he:
         raise he
+    except ValueError as ve:
+        # Catch data scale/IPO issues cleanly
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # General safety net
+        raise HTTPException(status_code=500, detail=f"Prediction Engine failure: {str(e)}")

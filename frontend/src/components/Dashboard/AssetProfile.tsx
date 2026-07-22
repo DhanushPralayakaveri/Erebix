@@ -1,16 +1,18 @@
 import React from 'react';
 import { StockMetadata } from '@/types/api';
-import { TrendingUp, TrendingDown, Activity, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, DollarSign, Bookmark, BookmarkCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useWatchlist } from '@/context/WatchlistContext';
 
 interface AssetProfileProps {
+  symbol: string | null;
   meta: StockMetadata | null;
   isLoading: boolean;
 }
 
-export function AssetProfile({ meta, isLoading }: AssetProfileProps) {
-  if (isLoading || !meta) {
+export function AssetProfile({ symbol, meta, isLoading }: AssetProfileProps) {
+  if (isLoading || !meta || !symbol) {
     return (
       <div className="w-full h-32 bg-[#161a22] rounded-2xl border border-white/5 animate-pulse flex flex-col justify-center px-6">
         <div className="h-6 bg-white/10 rounded w-1/4 mb-4"></div>
@@ -23,6 +25,8 @@ export function AssetProfile({ meta, isLoading }: AssetProfileProps) {
   }
 
   const isPositive = meta.change >= 0;
+  const { isInWatchlist, addStock, removeStock } = useWatchlist();
+  const isSaved = isInWatchlist(symbol);
   
   return (
     <div className="w-full bg-white dark:bg-[#161a22] rounded-2xl border border-gray-200 dark:border-white/5 p-6 flex flex-col md:flex-row justify-between items-start md:items-center shadow-xl relative overflow-hidden transition-colors duration-300">
@@ -33,13 +37,25 @@ export function AssetProfile({ meta, isLoading }: AssetProfileProps) {
       )} />
 
       <div className="flex flex-col mb-4 md:mb-0 z-10">
-        <div className="flex items-center gap-3 mb-1">
-          <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+        <div className="flex flex-wrap items-center gap-3 mb-1">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight max-w-xl">
             {meta.companyName}
           </h2>
           <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 text-sm font-bold border border-gray-200 dark:border-white/10">
             {meta.sector}
           </span>
+          <button
+            onClick={() => isSaved ? removeStock(symbol) : addStock(symbol)}
+            className={twMerge(
+              "ml-2 p-1.5 rounded-lg border transition-all duration-300",
+              isSaved 
+                ? "bg-yellow-100 text-yellow-600 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.2)]" 
+                : "bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-500 dark:border-white/10 dark:hover:bg-white/10 dark:hover:text-gray-300"
+            )}
+            title={isSaved ? "Remove from Watchlist" : "Add to Watchlist"}
+          >
+            {isSaved ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
+          </button>
         </div>
         <p className="text-gray-500 font-medium text-sm flex items-center gap-1 mt-2">
           <Activity className="w-4 h-4 text-blue-500" /> Live Market Data
@@ -58,7 +74,7 @@ export function AssetProfile({ meta, isLoading }: AssetProfileProps) {
         </div>
 
         <div className="flex flex-col items-end">
-          <span className="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-1">Vs. Cost</span>
+          <span className="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-1">Daily Change</span>
           <div className={twMerge(
             "flex items-center gap-1 px-3 py-1.5 rounded-lg border font-bold text-sm",
             isPositive 

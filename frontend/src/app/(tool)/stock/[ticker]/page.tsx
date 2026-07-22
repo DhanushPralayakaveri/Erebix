@@ -7,7 +7,8 @@ import { Topbar } from '@/components/Layout/Topbar';
 import { AssetProfile } from '@/components/Dashboard/AssetProfile';
 import { VisualEngine } from '@/components/Chart/VisualEngine';
 import { SimulatorPanel } from '@/components/Dashboard/SimulatorPanel';
-import { IntelligencePanel } from '@/components/AIInsights/IntelligencePanel';
+import { AIGauge } from '@/components/AIInsights/AIGauge';
+import { AIReport } from '@/components/AIInsights/AIReport';
 import { StockDataResponse, MarketPredictionResponse } from '@/types/api';
 import { fetchMarketData, fetchMarketPrediction, InsufficientDataError } from '@/lib/api';
 
@@ -75,19 +76,30 @@ export default function StockDetailPage({ params }: { params: Promise<{ ticker: 
 
         {(!error && (stockData || isLoading)) && (
           <>
-            <AssetProfile meta={stockData?.meta || null} isLoading={isLoading} />
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 flex flex-col h-full">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-min">
+              {/* Row 1: Asset Profile & AI Gauge */}
+              <div className="lg:col-span-2">
+                <AssetProfile symbol={stockData?.symbol || ticker} meta={stockData?.meta || null} isLoading={isLoading} />
+              </div>
+              <div className="lg:col-span-1">
+                <AIGauge predictionData={predictionData} isLoading={isLoading} />
+              </div>
+
+              {/* Row 2: Visual Engine (Chart) */}
+              <div className="lg:col-span-3">
                 <VisualEngine history={stockData?.history || []} isLoading={isLoading} />
+              </div>
+
+              {/* Row 3: Simulator & Detailed Report */}
+              <div className="lg:col-span-2">
                 <SimulatorPanel 
                   meta={stockData?.meta || null} 
                   history={stockData?.history || null} 
                   isLoading={isLoading} 
                 />
               </div>
-              <div className="lg:col-span-1 h-full">
-                <IntelligencePanel predictionData={predictionData} isLoading={isLoading} />
+              <div className="lg:col-span-1">
+                <AIReport predictionData={predictionData} isLoading={isLoading} />
               </div>
             </div>
           </>

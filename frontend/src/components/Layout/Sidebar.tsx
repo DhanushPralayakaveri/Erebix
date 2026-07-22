@@ -11,7 +11,7 @@ export function Sidebar() {
 
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <Home className="w-5 h-5" /> },
-    { label: 'Watchlist', href: '/dashboard', icon: <LineChart className="w-5 h-5" /> },
+    { label: 'Watchlist', href: '/watchlist', icon: <LineChart className="w-5 h-5" /> },
     { label: 'Portfolio', href: '/portfolio', icon: <PieChart className="w-5 h-5" /> },
     { label: 'Settings', href: '/settings', icon: <Settings className="w-5 h-5" /> },
   ];

@@ -37,10 +37,12 @@ export function SimulatorPanel({ meta, history, isLoading }: SimulatorPanelProps
 
   return (
     <div className="w-full bg-white dark:bg-[#161a22] rounded-2xl border border-gray-200 dark:border-white/5 p-6 mt-6 shadow-xl transition-colors duration-300">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+      <div className="flex flex-wrap items-center justify-between gap-8">
         
-        {/* Column 1: Quantity Slider */}
-        <div className="flex flex-col gap-3">
+        {/* Left Group: Controls */}
+        <div className="flex flex-col sm:flex-row items-center gap-8 w-full lg:w-auto shrink-0">
+          {/* Column 1: Quantity Slider */}
+          <div className="flex flex-col gap-3 w-full sm:w-48 xl:w-64">
           <div className="flex items-center justify-between">
             <span className="text-gray-500 dark:text-gray-400 font-bold tracking-widest text-xs uppercase">
               Simulate QTY
@@ -60,8 +62,8 @@ export function SimulatorPanel({ meta, history, isLoading }: SimulatorPanelProps
           />
         </div>
 
-        {/* Column 2: Custom Cost Input */}
-        <div className="flex flex-col border-t md:border-t-0 md:border-l border-gray-200 dark:border-white/10 pt-4 md:pt-0 md:pl-8">
+          {/* Column 2: Custom Cost Input */}
+          <div className="flex flex-col border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-white/10 pt-4 sm:pt-0 sm:pl-8 w-full sm:w-48 xl:w-64">
           <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider mb-2">
             Your Avg Cost
           </span>
@@ -77,15 +79,17 @@ export function SimulatorPanel({ meta, history, isLoading }: SimulatorPanelProps
           </div>
         </div>
 
-        {/* Column 3: Total Gains */}
-        <div className="flex flex-col items-end border-t md:border-t-0 md:border-l border-gray-200 dark:border-white/10 pt-4 md:pt-0 md:pl-8">
+          </div>
+
+        {/* Right Group: Total Gains */}
+        <div className="flex flex-col items-start lg:items-end border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-white/10 pt-6 lg:pt-0 lg:pl-8 flex-1 min-w-[250px]">
           <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider mb-2">
             Total Simulated Gains
           </span>
           
-          <div className="flex flex-wrap items-center justify-end gap-3 w-full">
+          <div className="flex flex-col lg:items-end gap-1 w-full mt-1">
             <span className={twMerge(
-              "text-3xl font-black tracking-tight drop-shadow-md",
+              "text-3xl xl:text-4xl font-black tracking-tight drop-shadow-md break-all",
               isPositive 
                 ? "text-green-500 dark:text-green-400 dark:drop-shadow-[0_0_12px_rgba(74,222,128,0.4)]" 
                 : "text-red-500 dark:text-red-400 dark:drop-shadow-[0_0_12px_rgba(248,113,113,0.4)]"
@@ -94,7 +98,7 @@ export function SimulatorPanel({ meta, history, isLoading }: SimulatorPanelProps
             </span>
             
             <div className={twMerge(
-              "flex items-center gap-1 px-2.5 py-1 rounded-md text-sm font-bold shadow-sm whitespace-nowrap",
+              "flex items-center gap-1 px-2.5 py-1 rounded-md text-sm font-bold shadow-sm whitespace-nowrap self-end",
               isPositive 
                 ? "bg-green-100 text-green-700 border border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20" 
                 : "bg-red-100 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"

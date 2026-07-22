@@ -1,4 +1,4 @@
-import { StockDataResponse, MarketPredictionResponse } from '@/types/api';
+import { StockDataResponse, MarketPredictionResponse, SearchResponse } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -32,6 +32,16 @@ export async function fetchMarketPrediction(ticker: string): Promise<MarketPredi
     }
     const errData = await response.json().catch(() => null);
     throw new Error(errData?.detail || 'Failed to fetch market prediction.');
+  }
+
+  return response.json();
+}
+
+export async function searchStocks(query: string): Promise<SearchResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/market/search?q=${encodeURIComponent(query)}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch search results.');
   }
 
   return response.json();

@@ -2,28 +2,42 @@ import yfinance as yf
 import pandas as pd
 import joblib
 from xgboost import XGBClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
 import os
 
-# Import our pure math engine from PR #1
+# Import our pure math engine
 from app.services.indicators import calculate_technical_indicators
 
 def build_training_dataset():
     """
     Downloads historical data for a diverse mix of stocks,
-    injects technical indicators, and adds "Context Awareness" features.
+    injects technical indicators, and adds "Context Awareness" features including Macro.
     """
-    # The Training Universe: A mix of stable giants and erratic movers
     symbols = [
-        "AAPL", "MSFT", "RELIANCE.NS", "HDFCBANK.NS",  # The Whales (Stable)
-        "GME", "AMC", "ZOM", "SUZLON.NS"               # The Minnows (Volatile)
+        "AAPL", "MSFT", "RELIANCE.NS", "HDFCBANK.NS",  # Stable
+        "GME", "AMC", "ZOM", "SUZLON.NS"               # Volatile
     ]
+    
+    print("Downloading historical data and engineering features...")
+    
+    # Fetch Macro Context Data
+    spy = yf.Ticker("^GSPC").history(period="5y")
+    vix = yf.Ticker("^VIX").history(period="5y")
+    spy.reset_index(inplace=True)
+    vix.reset_index(inplace=True)
+    if spy['Date'].dt.tz is not None:
+        spy['Date'] = spy['Date'].dt.tz_localize(None)
+    if vix['Date'].dt.tz is not None:
+        vix['Date'] = vix['Date'].dt.tz_localize(None)
+    spy = spy[['Date', 'Close']].rename(columns={'Close': 'spy_close'})
+    vix = vix[['Date', 'Close']].rename(columns={'Close': 'vix_value'})
     
     all_data = []
     
-    print("Downloading historical data and engineering features...")
     for symbol in symbols:
         ticker = yf.Ticker(symbol)
-        # 5 years of data is perfect for this baseline (~1,250 rows per stock)
         df = ticker.history(period="5y")
         
         if df.empty or len(df) < 50:
@@ -33,31 +47,32 @@ def build_training_dataset():
         if df['Date'].dt.tz is not None:
             df['Date'] = df['Date'].dt.tz_localize(None)
             
-        # 1. Base Indicators: Run our standard math engine
+        # Merge Macro Data
+        df = pd.merge(df, spy, on='Date', how='left')
+        df = pd.merge(df, vix, on='Date', how='left')
+        df['spy_return'] = df['spy_close'].pct_change()
+        df['vix_value'] = df['vix_value'].ffill().bfill()
+        df['spy_return'] = df['spy_return'].ffill().bfill()
+            
+        # 1. Base Indicators
         df = calculate_technical_indicators(df)
         
-        # 2. CONTEXT FEATURES: Tell the AI what "type" of stock this is today
-        # Volatility Context: How wide are the Bollinger Bands relative to the price?
+        # 2. CONTEXT FEATURES
         df['volatility_width'] = (df['bb_upper'] - df['bb_lower']) / df['bb_middle']
-        
-        # Volume Context: Is volume spiking relative to its 20-day average?
         df['volume_sma_20'] = df['Volume'].rolling(window=20).mean()
         df['volume_spike_ratio'] = df['Volume'] / df['volume_sma_20']
         
-        # 3. Define the Target: 1 if tomorrow closes higher than today, 0 if lower
+        # 3. Define the Target
         df['Target'] = (df['Close'].shift(-1) > df['Close']).astype(int)
         
-        # Clean up NaNs created by rolling windows and shifting
         df.dropna(inplace=True)
         
-        # Drop the strings and target from our features matrix
         features = df.drop(columns=['Date', 'Target'])
         target = df['Target']
         
         all_data.append((features, target))
         print(f"Processed {symbol} - {len(features)} valid trading days")
 
-    # Combine all individual stock data into one massive dataset
     X_list, y_list = zip(*all_data)
     X = pd.concat(X_list, ignore_index=True)
     y = pd.concat(y_list, ignore_index=True)
@@ -66,30 +81,36 @@ def build_training_dataset():
 
 def train_and_save_model():
     """
-    Trains the XGBoost classifier and exports the 'brain' to a file.
+    Trains the Tri-Model Stack and exports the brains to files.
     """
     X, y = build_training_dataset()
     
-    print("\nTraining Context-Aware XGBoost Model...")
+    print("\nTraining Tri-Model Stack...")
     
-    # We restrict max_depth to prevent it from over-memorizing the past (Overfitting)
-    model = XGBClassifier(
-        n_estimators=200,
-        max_depth=4,
-        learning_rate=0.05,
-        random_state=42,
-        eval_metric='logloss'
-    )
-    
-    model.fit(X, y)
-    
-    # Create a models directory and save the trained brain
     os.makedirs('app/models', exist_ok=True)
-    model_path = 'app/models/xgboost_global.pkl'
-    joblib.dump(model, model_path)
     
-    print(f"✅ Model trained successfully on {len(X)} historical data points!")
-    print(f"✅ Brain saved to: {model_path}")
+    # Standardize features for MLP
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    joblib.dump(scaler, 'app/models/scaler.pkl')
+    
+    xgb = XGBClassifier(n_estimators=200, max_depth=4, learning_rate=0.05, random_state=42, eval_metric='logloss')
+    rf = RandomForestClassifier(n_estimators=200, max_depth=5, random_state=42)
+    mlp = MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=500, random_state=42)
+    
+    print("Training XGBoost...")
+    xgb.fit(X, y)
+    print("Training Random Forest...")
+    rf.fit(X, y)
+    print("Training MLP Neural Network...")
+    mlp.fit(X_scaled, y)
+    
+    joblib.dump(xgb, 'app/models/xgboost_global.pkl')
+    joblib.dump(rf, 'app/models/rf_global.pkl')
+    joblib.dump(mlp, 'app/models/mlp_global.pkl')
+    
+    print(f"[SUCCESS] Models trained successfully on {len(X)} historical data points!")
+    print(f"[SUCCESS] Brains saved to: app/models/")
 
 if __name__ == "__main__":
     train_and_save_model()

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StockHistory } from '@/types/api';
 import {
   ResponsiveContainer,
@@ -77,10 +77,19 @@ const CustomLabel = (props: any) => {
 };
 
 export function VisualEngine({ history, isLoading }: VisualEngineProps) {
+  const [timeframe, setTimeframe] = useState<'7D' | '1M' | '3M' | '6M' | '1Y'>('1M');
+
   const slicedData = useMemo(() => {
-    // Show last 30 days for a cleaner bar look
-    return history.slice(-30);
-  }, [history]);
+    let days = 21; // Default 1M (trading days)
+    switch (timeframe) {
+      case '7D': days = 5; break; // 5 trading days
+      case '1M': days = 21; break; // ~21 trading days
+      case '3M': days = 63; break; // ~63 trading days
+      case '6M': days = 126; break; // ~126 trading days
+      case '1Y': days = history.length; break;
+    }
+    return history.slice(-days);
+  }, [history, timeframe]);
 
   if (isLoading || !history.length) {
     return (
@@ -90,18 +99,38 @@ export function VisualEngine({ history, isLoading }: VisualEngineProps) {
     );
   }
 
-  const prices = slicedData.map(d => d.Close);
-  const minPrice = Math.min(...prices) * 0.95;
-  const maxPrice = Math.max(...prices) * 1.15; // Added dynamic offset margin to prevent top edge clipping
+  // Calculate min and max based on BOTH Close price and the SMA line
+  const allValues = slicedData.flatMap(d => [d.Close, d.sma_20].filter(v => v !== undefined && v !== null));
+  const minPrice = Math.min(...allValues) * 0.95;
+  const maxPrice = Math.max(...allValues) * 1.15; // Dynamic offset margin to prevent top edge clipping
 
   return (
     <div className="w-full bg-white dark:bg-[#161a22] rounded-2xl border border-gray-200 dark:border-white/5 p-6 shadow-xl relative transition-colors duration-300">
-      <div className="absolute top-6 left-6 z-10">
-        <h3 className="text-gray-900 dark:text-white font-black text-lg tracking-wide">Price Trend</h3>
-        <p className="text-xs text-gray-500 font-medium">Cost Curve & Historical Movement</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 z-10 relative">
+        <div>
+          <h3 className="text-gray-900 dark:text-white font-black text-lg tracking-wide">Price Trend</h3>
+          <p className="text-xs text-gray-500 font-medium">Cost Curve & Historical Movement</p>
+        </div>
+        
+        {/* Timeframe Filters */}
+        <div className="flex bg-gray-100 dark:bg-black/20 p-1 rounded-xl border border-gray-200 dark:border-white/5">
+          {(['7D', '1M', '3M', '6M', '1Y'] as const).map((tf) => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                timeframe === tf 
+                  ? 'bg-white dark:bg-[#161a22] text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-white/10' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              {tf}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="h-[350px] w-full mt-10">
+      <div className="h-[350px] w-full mt-6">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={slicedData} margin={{ top: 30, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -131,7 +160,7 @@ export function VisualEngine({ history, isLoading }: VisualEngineProps) {
             <Bar 
               dataKey="Close" 
               radius={[4, 4, 0, 0]}
-              barSize={30}
+              maxBarSize={40}
             >
               {slicedData.map((entry, index) => (
                 <Cell 
@@ -139,7 +168,9 @@ export function VisualEngine({ history, isLoading }: VisualEngineProps) {
                   fill={index === slicedData.length - 1 ? '#22c55e' : 'url(#barGlow)'} 
                 />
               ))}
-              <CustomLabel totalLength={slicedData.length} data={slicedData} />
+              {timeframe === '7D' || timeframe === '1M' ? (
+                <CustomLabel totalLength={slicedData.length} data={slicedData} />
+              ) : null}
             </Bar>
 
             {/* The Cost Curve */}

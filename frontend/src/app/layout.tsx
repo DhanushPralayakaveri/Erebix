@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased transition-colors duration-300`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="dark" themes={['light', 'dark', 'hades', 'cyber']} enableSystem={false}>
           <WatchlistProvider>
             {children}
           </WatchlistProvider>

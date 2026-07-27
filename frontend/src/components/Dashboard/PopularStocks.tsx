@@ -16,19 +16,19 @@ export function PopularStocks({ onSelect }: { onSelect: (symbol: string) => void
     <div className="w-full mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between mb-8 px-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gray-100 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm">
-            <Globe className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+          <div className="p-2 bg-muted rounded-lg border border-border shadow-sm">
+            <Globe className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-wide transition-colors">
+            <h2 className="text-2xl font-black text-foreground tracking-wide transition-colors">
               Global Equities Watchlist
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Real-time simulated market data flow</p>
+            <p className="text-sm text-muted-foreground font-medium">Real-time simulated market data flow</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-500/10 border border-green-300 dark:border-green-500/20 rounded-full shadow-sm">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-green-700 dark:text-green-400 text-xs font-bold uppercase tracking-wider hidden sm:block">Markets Open</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-success/10 border border-success/20 rounded-full shadow-sm">
+          <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+          <span className="text-success text-xs font-bold uppercase tracking-wider hidden sm:block">Markets Open</span>
         </div>
       </div>
 
@@ -37,31 +37,31 @@ export function PopularStocks({ onSelect }: { onSelect: (symbol: string) => void
           <button
             key={stock.symbol}
             onClick={() => onSelect(stock.symbol)}
-            className="group relative w-full bg-white dark:bg-[#161a22] hover:bg-gray-50 dark:hover:bg-[#1a1f29] rounded-2xl border border-gray-200 dark:border-white/5 p-6 text-left transition-all duration-300 overflow-hidden shadow-lg hover:shadow-xl hover:-translate-y-1"
+            className="group relative w-full bg-card hover:bg-muted/50 rounded-2xl cyber:rounded-none cyber:cyber-clip border border-border p-6 text-left transition-all duration-300 overflow-hidden shadow-lg hover:shadow-xl hover:-translate-y-1 cyber:cyber-glitch-hover"
           >
             {/* Fancy Gradient Background in Light Mode */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 dark:from-transparent dark:to-transparent opacity-100 dark:opacity-0 -z-10" />
+            <div className="absolute inset-0 bg-gradient-to-br from-card to-muted opacity-100 dark:opacity-0 -z-10" />
 
             {/* Hover Glow Effect */}
             <div className={clsx(
               "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-[60px] opacity-0 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-500 pointer-events-none",
-              stock.isUp ? "bg-green-400" : "bg-red-400"
+              stock.isUp ? "bg-success" : "bg-danger"
             )} />
 
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-xl font-black text-gray-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                <h3 className="text-xl font-black text-foreground group-hover:text-success transition-colors">
                   {stock.symbol}
                 </h3>
-                <p className="text-sm text-gray-500">{stock.name}</p>
+                <p className="text-sm text-muted-foreground">{stock.name}</p>
               </div>
               <div className="text-right">
-                <span className="text-xl font-bold text-gray-900 dark:text-white">
+                <span className="text-xl font-bold text-foreground">
                   ${stock.price.toFixed(2)}
                 </span>
                 <div className={clsx(
                   "flex items-center justify-end gap-1 text-sm font-bold mt-1 px-2 py-0.5 rounded-md",
-                  stock.isUp ? "bg-green-100 text-green-700 dark:bg-transparent dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-transparent dark:text-red-400"
+                  stock.isUp ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
                 )}>
                   {stock.isUp ? <TrendingUp className="w-3 h-3"/> : <TrendingDown className="w-3 h-3"/>}
                   {stock.isUp ? '+' : ''}{stock.pct.toFixed(2)}%
@@ -69,11 +69,11 @@ export function PopularStocks({ onSelect }: { onSelect: (symbol: string) => void
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/5">
-              <span className="text-xs text-gray-500 dark:text-gray-600 font-bold flex items-center gap-1">
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <span className="text-xs text-muted-foreground font-bold flex items-center gap-1">
                 <Activity className="w-4 h-4" /> VOL {stock.volume}
               </span>
-              <span className="text-sm font-semibold text-blue-600 dark:text-gray-400 group-hover:text-blue-700 dark:group-hover:text-white transition-colors">
+              <span className="text-sm font-semibold text-primary group-hover:text-primary-foreground transition-colors">
                 Analyze Target &rarr;
               </span>
             </div>

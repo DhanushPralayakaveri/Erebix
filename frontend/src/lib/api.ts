@@ -1,6 +1,6 @@
 import { StockDataResponse, MarketPredictionResponse, SearchResponse } from '@/types/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = ''; // Relative path, handled by Next.js rewrites in next.config.ts
 
 export class InsufficientDataError extends Error {
   constructor(message: string) {

@@ -7,8 +7,7 @@ import { Topbar } from '@/components/Layout/Topbar';
 import { AssetProfile } from '@/components/Dashboard/AssetProfile';
 import { VisualEngine } from '@/components/Chart/VisualEngine';
 import { SimulatorPanel } from '@/components/Dashboard/SimulatorPanel';
-import { AIGauge } from '@/components/AIInsights/AIGauge';
-import { AIReport } from '@/components/AIInsights/AIReport';
+import { IntelligencePanel } from '@/components/AIInsights/IntelligencePanel';
 import { StockDataResponse, MarketPredictionResponse } from '@/types/api';
 import { fetchMarketData, fetchMarketPrediction, InsufficientDataError } from '@/lib/api';
 
@@ -61,46 +60,30 @@ export default function StockDetailPage({ params }: { params: Promise<{ ticker: 
       <div className="p-8 max-w-6xl mx-auto w-full space-y-6">
         <Link 
           href="/dashboard" 
-          className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
         </Link>
 
         {error && (
-          <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-red-600 dark:text-red-400 font-medium text-sm flex items-center gap-3 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+          <div className="p-4 bg-danger/10 border border-danger/20 rounded-xl text-danger font-medium text-sm flex items-center gap-3 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-danger animate-pulse shrink-0"></span>
             {error}
           </div>
         )}
 
         {(!error && (stockData || isLoading)) && (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-min">
-              {/* Row 1: Asset Profile & AI Gauge */}
-              <div className="lg:col-span-2">
-                <AssetProfile symbol={stockData?.symbol || ticker} meta={stockData?.meta || null} isLoading={isLoading} />
-              </div>
-              <div className="lg:col-span-1">
-                <AIGauge predictionData={predictionData} isLoading={isLoading} />
-              </div>
-
-              {/* Row 2: Visual Engine (Chart) */}
-              <div className="lg:col-span-3">
-                <VisualEngine history={stockData?.history || []} isLoading={isLoading} />
-              </div>
-
-              {/* Row 3: Simulator & Detailed Report */}
-              <div className="lg:col-span-2">
-                <SimulatorPanel 
-                  meta={stockData?.meta || null} 
-                  history={stockData?.history || null} 
-                  isLoading={isLoading} 
-                />
-              </div>
-              <div className="lg:col-span-1">
-                <AIReport predictionData={predictionData} isLoading={isLoading} />
-              </div>
+            <div className="flex flex-col gap-6">
+              <AssetProfile symbol={stockData?.symbol || ticker} meta={stockData?.meta || null} isLoading={isLoading} />
+              <VisualEngine history={stockData?.history || []} isLoading={isLoading} />
+              <SimulatorPanel 
+                meta={stockData?.meta || null} 
+                history={stockData?.history || null} 
+                isLoading={isLoading} 
+              />
+              <IntelligencePanel predictionData={predictionData} isLoading={isLoading} />
             </div>
           </>
         )}

@@ -3,7 +3,6 @@
 import React from 'react';
 import { useWatchlist } from '@/context/WatchlistContext';
 import { Bookmark, Activity, X } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Topbar } from '@/components/Layout/Topbar';
 
@@ -32,7 +31,7 @@ export default function WatchlistPage() {
           <Bookmark className="w-12 h-12 text-muted-foreground opacity-50 mb-4" />
           <h3 className="text-lg font-bold text-foreground mb-2">No stocks saved yet</h3>
           <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-            Search for an asset in the top bar or use the global dashboard, and click the bookmark icon on the asset's profile to save it here.
+            Search for an asset in the top bar or use the global dashboard, and click the bookmark icon on the asset&apos;s profile to save it here.
           </p>
           <button 
             onClick={() => router.push('/dashboard')}

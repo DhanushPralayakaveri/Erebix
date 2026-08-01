@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+ml:
+  service:
+    url: ${ML_SERVICE_URL}
+    timeout-ms: ${ML_SERVICE_TIMEOUT:10000}
+
+app:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS}

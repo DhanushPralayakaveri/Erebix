@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StockMetadata, StockHistory } from '@/types/api';
-import { Wallet, TrendingUp, TrendingDown, Edit2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Edit2 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
 interface SimulatorPanelProps {
@@ -15,7 +15,10 @@ export function SimulatorPanel({ meta, history, isLoading }: SimulatorPanelProps
 
   useEffect(() => {
     if (history && history.length > 0) {
-      setCustomCost(history[history.length - 1].sma_20.toFixed(2));
+      const timer = setTimeout(() => {
+        setCustomCost(history[history.length - 1].sma_20.toFixed(2));
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [history, meta?.companyName]);
 

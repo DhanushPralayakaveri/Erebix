@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Sun, Moon, Loader2, Flame, Palette, Zap } from 'lucide-react';
+import { Search, Sun, Moon, Flame, Palette, Zap } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { searchStocks } from '@/lib/api';
 import { SearchResult } from '@/types/api';
@@ -22,7 +22,8 @@ export function Header({ onSearch, onHome, isLoading }: HeaderProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Click outside to close dropdowns
@@ -39,7 +40,7 @@ export function Header({ onSearch, onHome, isLoading }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounced search logic
+  // Debounced search
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (tickerInput.trim().length > 1) {
@@ -62,80 +63,95 @@ export function Header({ onSearch, onHome, isLoading }: HeaderProps) {
     return () => clearTimeout(timer);
   }, [tickerInput]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (tickerInput.trim()) {
-      onSearch(tickerInput.trim().toUpperCase());
-      setTickerInput('');
-      setShowDropdown(false);
-    }
-  };
-
-  const handleSelectSuggestion = (symbol: string) => {
-    onSearch(symbol.toUpperCase());
+  const handleSelectSymbol = (symbol: string) => {
+    onSearch(symbol);
     setTickerInput('');
     setShowDropdown(false);
   };
 
-  return (
-    <header className="flex items-center justify-between p-6 border-b border-border bg-background transition-colors duration-300 shadow-sm z-50">
-      <button onClick={onHome} className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left">
-        <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center border border-success/50 shadow-[0_0_15px_var(--glow-green)]">
-          <span className="text-success font-black text-sm">E</span>
-        </div>
-        <h1 className="text-xl font-black tracking-widest text-foreground uppercase transition-colors">
-          Erebix
-        </h1>
-      </button>
+  const themes = [
+    { id: 'dark', name: 'Standard Cyber', icon: Zap, color: 'bg-[#00f0ff]' },
+    { id: 'hades-dark', name: 'Hades Red', icon: Flame, color: 'bg-[#ff003c]' },
+    { id: 'light', name: 'Light Terminal', icon: Sun, color: 'bg-[#090d16]' },
+    { id: 'hades-light', name: 'Hades Light', icon: Palette, color: 'bg-[#d90429]' },
+  ];
 
-      <div className="flex items-center gap-4 w-full max-w-md justify-end">
-        <div className="relative w-full" ref={dropdownRef}>
-          <form onSubmit={handleSubmit} className="relative w-full">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-border rounded-xl leading-5 bg-card text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all sm:text-sm shadow-inner"
-              placeholder="Search Company or Ticker (e.g., Apple)"
+  return (
+    <header className="w-full bg-card/60 backdrop-blur-md border-b border-border sticky top-0 z-40 transition-colors duration-500">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-6">
+        
+        {/* Brand */}
+        <div 
+          onClick={onHome}
+          className="flex items-center gap-3 cursor-pointer group select-none shrink-0"
+        >
+          <div className="w-10 h-10 rounded-xl bg-success/20 flex items-center justify-center border border-success/50 group-hover:scale-105 transition-transform shadow-[0_0_20px_var(--glow-green)]">
+            <span className="text-success font-black text-xl tracking-tighter">E</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xl font-black tracking-widest text-foreground uppercase group-hover:text-primary transition-colors">
+              Erebix
+            </span>
+            <span className="text-[10px] font-bold text-muted-foreground tracking-widest -mt-1 uppercase">
+              Quant Engine
+            </span>
+          </div>
+        </div>
+
+        {/* Global Search Bar with Live Search */}
+        <div className="flex-1 max-w-xl relative" ref={dropdownRef}>
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (tickerInput.trim()) {
+                onSearch(tickerInput.trim());
+                setShowDropdown(false);
+              }
+            }}
+            className="relative flex items-center w-full"
+          >
+            <Search className="w-5 h-5 text-muted-foreground absolute left-4 pointer-events-none" />
+            <input 
+              type="text" 
               value={tickerInput}
               onChange={(e) => setTickerInput(e.target.value)}
               onFocus={() => {
                 if (suggestions.length > 0) setShowDropdown(true);
               }}
-              disabled={isLoading}
+              placeholder="Search ticker or company (e.g., AAPL, TSLA, INFY.NS, NVDA)..." 
+              className="w-full h-12 bg-muted/50 hover:bg-muted focus:bg-muted text-foreground placeholder:text-muted-foreground pl-12 pr-24 rounded-xl border border-border focus:border-primary/50 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-semibold shadow-inner"
             />
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading || !tickerInput.trim()}
-              className="absolute inset-y-1 right-1 px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-lg border border-primary/20 hover:bg-primary/20 disabled:opacity-50 transition-colors"
+              className="absolute right-2 px-4 py-1.5 bg-foreground text-background font-black text-xs rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {isLoading ? 'Wait...' : 'Search'}
+              SEARCH
             </button>
           </form>
 
-          {/* Autocomplete Dropdown */}
-          {showDropdown && (tickerInput.trim().length > 1) && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50">
+          {/* Live Search Suggestions Dropdown */}
+          {showDropdown && (
+            <div className="absolute top-14 left-0 right-0 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               {isSearching ? (
                 <div className="p-4 text-center text-sm font-medium text-muted-foreground">
-                  Searching market data...
+                  Searching institutional database...
                 </div>
               ) : suggestions.length > 0 ? (
-                <ul className="max-h-64 overflow-y-auto custom-scrollbar">
-                  {suggestions.map((item, idx) => (
-                    <li key={idx}>
+                <ul className="max-h-80 overflow-y-auto divide-y divide-border/50">
+                  {suggestions.map((item) => (
+                    <li key={item.symbol}>
                       <button
                         type="button"
-                        onClick={() => handleSelectSuggestion(item.symbol)}
-                        className="w-full text-left px-4 py-3 hover:bg-muted transition-colors border-b border-border last:border-0 flex items-center justify-between group"
+                        onClick={() => handleSelectSymbol(item.symbol)}
+                        className="w-full px-4 py-3 text-left hover:bg-muted/70 flex items-center justify-between gap-4 transition-colors group"
                       >
-                        <div className="flex flex-col truncate pr-4">
-                          <span className="text-sm font-bold text-foreground truncate">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-black text-foreground truncate group-hover:text-primary transition-colors">
                             {item.shortname}
                           </span>
-                          <span className="text-xs text-muted-foreground font-medium mt-0.5">
-                            {item.exchange}
+                          <span className="text-xs text-muted-foreground font-semibold">
+                            {item.exchange} • {item.type}
                           </span>
                         </div>
                         <span className="px-2 py-1 bg-muted rounded text-xs font-black text-foreground border border-border shrink-0 group-hover:border-primary/30 group-hover:text-primary transition-colors">
@@ -147,7 +163,7 @@ export function Header({ onSearch, onHome, isLoading }: HeaderProps) {
                 </ul>
               ) : (
                 <div className="p-4 text-center text-sm font-medium text-muted-foreground">
-                  No matches found for "{tickerInput}"
+                  No matches found for &quot;{tickerInput}&quot;
                 </div>
               )}
             </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { MarketPredictionResponse } from '@/types/api';
-import { BrainCircuit, Activity, BarChart2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { BrainCircuit, BarChart2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
 interface IntelligencePanelProps {

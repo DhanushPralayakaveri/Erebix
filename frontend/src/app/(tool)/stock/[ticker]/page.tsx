@@ -36,12 +36,14 @@ export default function StockDetailPage({ params }: { params: Promise<{ ticker: 
         setStockData(marketData);
         setPredictionData(predictData);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
         if (err instanceof InsufficientDataError) {
           setError(err.message);
-        } else {
+        } else if (err instanceof Error) {
           setError(err.message || 'Failed to connect to the backend API.');
+        } else {
+          setError('Failed to connect to the backend API.');
         }
         setStockData(null);
         setPredictionData(null);

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { WatchlistProvider } from "@/context/WatchlistContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,9 +21,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased transition-colors duration-300`}>
         <ThemeProvider attribute="class" defaultTheme="dark" themes={['light', 'dark', 'hades', 'cyber']} enableSystem={false}>
-          <WatchlistProvider>
-            {children}
-          </WatchlistProvider>
+          <AuthProvider>
+            <WatchlistProvider>
+              {children}
+            </WatchlistProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

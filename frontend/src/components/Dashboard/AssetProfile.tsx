@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StockMetadata } from '@/types/api';
 import { TrendingUp, TrendingDown, Activity, DollarSign, Bookmark, BookmarkCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useWatchlist } from '@/context/WatchlistContext';
+import { TradeModal } from '@/components/Dashboard/TradeModal';
 
 interface AssetProfileProps {
   symbol: string | null;
@@ -12,6 +13,9 @@ interface AssetProfileProps {
 }
 
 export function AssetProfile({ symbol, meta, isLoading }: AssetProfileProps) {
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+  const { isInWatchlist, addStock, removeStock } = useWatchlist();
+
   if (isLoading || !meta || !symbol) {
     return (
       <div className="w-full h-32 bg-card rounded-2xl cyber:rounded-none cyber:cyber-clip border border-border animate-pulse flex flex-col justify-center px-6">
@@ -25,9 +29,8 @@ export function AssetProfile({ symbol, meta, isLoading }: AssetProfileProps) {
   }
 
   const isPositive = meta.change >= 0;
-  const { isInWatchlist, addStock, removeStock } = useWatchlist();
   const isSaved = isInWatchlist(symbol);
-  
+
   return (
     <div className="w-full bg-card rounded-2xl cyber:rounded-none cyber:cyber-clip hades:rounded-sm border border-border hades:border-t-2 hades:border-b-2 hades:border-x-0 p-6 hades:p-8 flex flex-col md:flex-row justify-between items-start md:items-center shadow-xl hades:shadow-[0_0_40px_var(--glow-red)] relative overflow-hidden transition-all duration-500 cyber:cyber-glitch-hover">
       {/* Decorative neon glow behind */}
@@ -48,15 +51,31 @@ export function AssetProfile({ symbol, meta, isLoading }: AssetProfileProps) {
             onClick={() => isSaved ? removeStock(symbol) : addStock(symbol)}
             className={twMerge(
               "ml-2 p-1.5 hades:p-2 rounded-lg hades:rounded-sm border transition-all duration-300 cyber:rounded-none cyber:cyber-clip-button cyber:cyber-glitch-hover",
-              isSaved 
-                ? "bg-warning/10 text-warning border-warning/20 shadow-[0_0_10px_var(--glow-red)]" 
+              isSaved
+                ? "bg-warning/10 text-warning border-warning/20 shadow-[0_0_10px_var(--glow-red)]"
                 : "bg-muted/50 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
             )}
             title={isSaved ? "Remove from Watchlist" : "Add to Watchlist"}
           >
             {isSaved ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
           </button>
+
+          <button
+            onClick={() => setIsTradeModalOpen(true)}
+            className="ml-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-all font-black text-xs uppercase tracking-wider shadow-[0_0_15px_var(--glow-cyan)] flex items-center gap-1.5"
+            title="Execute Quant Trade / Add to Portfolio"
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>Trade / Add to Portfolio</span>
+          </button>
         </div>
+
+        <TradeModal
+          symbol={symbol}
+          currentPrice={meta.currentPrice}
+          isOpen={isTradeModalOpen}
+          onClose={() => setIsTradeModalOpen(false)}
+        />
         <p className="text-muted-foreground font-medium text-sm hades:text-xs flex items-center gap-1 hades:gap-2 mt-2 hades:mt-3 hades:uppercase hades:tracking-widest">
           <Activity className="w-4 h-4 text-primary hades:animate-pulse" /> Live Market Data
         </p>
@@ -66,7 +85,7 @@ export function AssetProfile({ symbol, meta, isLoading }: AssetProfileProps) {
         <div className="flex flex-col items-end">
           <span className="text-muted-foreground text-sm hades:text-xs font-bold uppercase tracking-wider hades:tracking-widest mb-1 hades:mb-2">Price Today</span>
           <div className="flex items-center gap-1">
-            <span className="text-muted-foreground opacity-50"><DollarSign className="w-6 h-6"/></span>
+            <span className="text-muted-foreground opacity-50"><DollarSign className="w-6 h-6" /></span>
             <span className="text-4xl font-black text-foreground hades:font-serif">
               {meta.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
@@ -77,8 +96,8 @@ export function AssetProfile({ symbol, meta, isLoading }: AssetProfileProps) {
           <span className="text-muted-foreground text-sm hades:text-xs font-bold uppercase tracking-wider hades:tracking-widest mb-1 hades:mb-2">Daily Change</span>
           <div className={twMerge(
             "flex items-center gap-1 hades:gap-2 px-3 py-1.5 hades:px-4 hades:py-2 rounded-lg hades:rounded-sm border font-bold hades:font-black text-sm hades:tracking-wider hades:uppercase shadow-sm hades:shadow-xl",
-            isPositive 
-              ? "bg-success/10 text-success border-success/20 shadow-[0_0_15px_var(--glow-green)]" 
+            isPositive
+              ? "bg-success/10 text-success border-success/20 shadow-[0_0_15px_var(--glow-green)]"
               : "bg-danger/10 text-danger border-danger/20 shadow-[0_0_15px_var(--glow-red)]"
           )}>
             {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}

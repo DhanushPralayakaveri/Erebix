@@ -18,12 +18,23 @@ interface VisualEngineProps {
   isLoading: boolean;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayload {
+  name: string;
+  value: number | string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-card border border-border p-3 rounded-lg shadow-2xl">
         <p className="text-muted-foreground text-xs mb-2">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: TooltipPayload, index: number) => (
           <div key={`item-${index}`} className="flex items-center justify-between gap-4">
             <span className="text-sm font-bold text-muted-foreground">
               {entry.name === 'Close' ? 'Price' : entry.name === 'sma_20' ? 'Avg Cost' : entry.name}
@@ -39,39 +50,50 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const CustomLabel = (props: any) => {
+interface CustomLabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  value?: number;
+  index?: number;
+  totalLength?: number;
+  data?: StockHistory[];
+}
+
+const CustomLabel = (props: CustomLabelProps) => {
   const { x, y, width, value, index, totalLength, data } = props;
   
   // Only show labels for local maxima peaks to avoid clutter, or the last terminal bar
-  let isPeak = false;
-  if (data && index > 0 && index < totalLength - 1) {
-    if (value > data[index - 1].Close && value > data[index + 1].Close) {
-      isPeak = true;
-    }
-  }
-  
-  if (!isPeak && index !== totalLength - 1) return null;
+  if (!x || !y || !value || !data || index === undefined || !totalLength) return null;
+  if (totalLength > 30 && index !== totalLength - 1) return null; // Suppress labels if too many data points
+
+  const isLast = index === totalLength - 1;
+  const isPeak = index > 0 && index < totalLength - 1 && 
+                 value > data[index - 1].Close && value > data[index + 1].Close;
+
+  if (!isLast && !isPeak) return null;
 
   return (
-    <g>
+    <g transform={`translate(${x + (width || 0) / 2},${y - 12})`}>
       <rect 
-        x={x + width / 2 - 25} 
-        y={y - 25} 
-        width="50" 
-        height="20" 
-        fill="#161a22" 
-        rx="4" 
-        stroke="#ffffff20"
+        x={-24} 
+        y={-14} 
+        width={48} 
+        height={18} 
+        rx={4} 
+        fill="var(--card)" 
+        stroke="var(--border)" 
+        strokeWidth={1}
       />
       <text 
-        x={x + width / 2} 
-        y={y - 11} 
-        fill="#fff" 
-        fontSize="10" 
-        fontWeight="bold" 
+        x={0} 
+        y={-1} 
+        fill="var(--foreground)" 
+        fontSize={10} 
+        fontWeight={900} 
         textAnchor="middle"
       >
-        {Math.round(value)}
+        ${Number(value).toFixed(1)}
       </text>
     </g>
   );
@@ -83,7 +105,8 @@ export function VisualEngine({ history, isLoading }: VisualEngineProps) {
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const isHades = mounted && (theme?.startsWith('hades') || resolvedTheme?.startsWith('hades'));

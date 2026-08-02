@@ -36,7 +36,19 @@ export interface StockDataResponse {
 
 export interface MarketPredictionResponse {
   symbol: string;
-  prediction: "UP" | "DOWN" | "NEUTRAL";
-  confidence: string;
+  prediction: 'UP' | 'DOWN' | 'NEUTRAL' | 'ERROR';
+  confidence: string; // e.g., "75.5%" or just "75.5" depending on backend
+  summary: string;
   insights: string[];
+}
+
+export interface SearchResult {
+  symbol: string;
+  shortname: string;
+  exchange: string;
+  type: string;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
 }

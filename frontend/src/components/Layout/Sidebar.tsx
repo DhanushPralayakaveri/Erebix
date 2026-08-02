@@ -2,18 +2,20 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, LineChart, PieChart, Settings, Activity, ChevronUp, User, CreditCard, LogOut } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Home, LineChart, PieChart, Activity, ChevronUp, LogOut, RefreshCw } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
+import { useAuth } from '@/context/AuthContext';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: <Home className="w-5 h-5" /> },
-    { label: 'Watchlist', href: '/dashboard', icon: <LineChart className="w-5 h-5" /> },
+    { label: 'Watchlist', href: '/watchlist', icon: <LineChart className="w-5 h-5" /> },
     { label: 'Portfolio', href: '/portfolio', icon: <PieChart className="w-5 h-5" /> },
-    { label: 'Settings', href: '/settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -29,23 +31,34 @@ export function Sidebar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleLogout = () => {
+    logout();
+    setIsProfileOpen(false);
+    router.push('/');
+  };
+
+  const handleSwitchProfile = () => {
+    setIsProfileOpen(false);
+    router.push('/');
+  };
+
   return (
-    <aside className="w-64 h-screen bg-white dark:bg-[#0a0c10] border-r border-gray-200 dark:border-white/5 flex flex-col transition-colors duration-300 flex-shrink-0 sticky top-0">
+    <aside className="w-64 h-screen bg-card border-r border-border flex flex-col transition-colors duration-300 flex-shrink-0 sticky top-0">
       <div className="p-6">
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center border border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.3)]">
-            <span className="text-green-600 dark:text-green-400 font-black text-sm">E</span>
+          <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center border border-success/50 shadow-[0_0_15px_var(--glow-green)]">
+            <span className="text-success font-black text-sm">E</span>
           </div>
-          <h1 className="text-xl font-black tracking-widest text-gray-900 dark:text-white uppercase">
+          <h1 className="text-xl font-black tracking-widest text-foreground uppercase">
             Erebix
           </h1>
         </Link>
       </div>
 
       <div className="px-6 pb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 shadow-sm w-full">
-          <Activity className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-          <span className="text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-wider">Engine Online</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 shadow-sm w-full">
+          <Activity className="w-3 h-3 text-primary animate-pulse" />
+          <span className="text-primary text-[10px] font-bold uppercase tracking-wider">Engine Online</span>
         </div>
       </div>
 
@@ -58,10 +71,10 @@ export function Sidebar() {
               key={item.label}
               href={item.href}
               className={twMerge(
-                "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm",
+                "flex items-center gap-3 px-4 py-3 rounded-xl cyber:rounded-none cyber:cyber-clip-button font-bold transition-all text-sm cyber:cyber-glitch-hover",
                 isActive 
-                  ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400" 
-                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-success/10 text-success border border-success/30" 
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               {item.icon}
@@ -74,16 +87,32 @@ export function Sidebar() {
       <div className="p-6 mt-auto">
         <div className="relative" ref={profileRef}>
           {isProfileOpen && (
-            <div className="absolute bottom-full mb-2 left-0 w-full bg-white dark:bg-[#161a22] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden py-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left font-semibold">
-                <User className="w-4 h-4" /> View Profile
+            <div className="absolute bottom-full mb-2 left-0 w-full bg-card border border-border rounded-xl shadow-xl overflow-hidden py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="px-4 py-2 border-b border-border/60">
+                <span className="text-xs font-black text-foreground block truncate">
+                  {user?.username || 'Trader-01'}
+                </span>
+                <span className="text-[10px] text-muted-foreground block truncate font-medium">
+                  {user?.email || 'demo@erebix.quant'}
+                </span>
+              </div>
+
+              <button 
+                onClick={handleSwitchProfile}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-foreground hover:bg-muted transition-colors text-left font-bold"
+              >
+                <RefreshCw className="w-4 h-4 text-primary" />
+                <span>Switch Profile / Auth</span>
               </button>
-              <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left font-semibold">
-                <CreditCard className="w-4 h-4" /> Billing
-              </button>
-              <div className="h-px bg-gray-200 dark:bg-white/10 my-1" />
-              <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-left font-semibold">
-                <LogOut className="w-4 h-4" /> Logout
+
+              <div className="h-px bg-border my-1" />
+
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-danger hover:bg-danger/10 transition-colors text-left font-bold"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout Session</span>
               </button>
             </div>
           )}
@@ -91,21 +120,27 @@ export function Sidebar() {
           <button 
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className={twMerge(
-              "w-full p-4 rounded-xl border flex flex-col gap-2 transition-all text-left",
+              "w-full p-4 rounded-xl cyber:rounded-none cyber:cyber-clip-button border flex flex-col gap-2 transition-all text-left cyber:cyber-glitch-hover",
               isProfileOpen 
-                ? "bg-gray-100 dark:bg-white/10 border-gray-300 dark:border-white/20" 
-                : "bg-gray-50 dark:bg-black/20 border-gray-200 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/10"
+                ? "bg-muted border-border shadow-md" 
+                : "bg-muted/50 border-border hover:bg-muted"
             )}
           >
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase flex items-center justify-between">
-              Account
+            <span className="text-xs text-muted-foreground font-bold uppercase flex items-center justify-between">
+              Active Session
               <ChevronUp className={twMerge("w-4 h-4 transition-transform duration-300", isProfileOpen && "rotate-180")} />
             </span>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 shrink-0 shadow-inner" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-success shrink-0 shadow-inner flex items-center justify-center text-background font-black text-xs">
+                {(user?.username || 'T').charAt(0).toUpperCase()}
+              </div>
               <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-bold text-gray-900 dark:text-white truncate">Demo User</span>
-                <span className="text-xs text-gray-500 truncate">Pro Tier</span>
+                <span className="text-sm font-black text-foreground truncate">
+                  {user?.username || 'Trader-01'}
+                </span>
+                <span className="text-[11px] text-primary font-bold truncate">
+                  {user ? 'Institutional Mode' : 'Demo Mode'}
+                </span>
               </div>
             </div>
           </button>

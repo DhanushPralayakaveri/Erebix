@@ -5,3 +5,5 @@ pandas
 pydantic
 pydantic-settings
 requests
+scikit-learn
+joblib

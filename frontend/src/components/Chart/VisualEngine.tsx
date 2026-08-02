@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
 import { StockHistory } from '@/types/api';
 import {
   ResponsiveContainer,
@@ -17,17 +18,28 @@ interface VisualEngineProps {
   isLoading: boolean;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayload {
+  name: string;
+  value: number | string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-[#0d0f14] border border-gray-200 dark:border-white/10 p-3 rounded-lg shadow-2xl">
-        <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">{label}</p>
-        {payload.map((entry: any, index: number) => (
+      <div className="bg-card border border-border p-3 rounded-lg shadow-2xl">
+        <p className="text-muted-foreground text-xs mb-2">{label}</p>
+        {payload.map((entry: TooltipPayload, index: number) => (
           <div key={`item-${index}`} className="flex items-center justify-between gap-4">
-            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-bold text-muted-foreground">
               {entry.name === 'Close' ? 'Price' : entry.name === 'sma_20' ? 'Avg Cost' : entry.name}
             </span>
-            <span className="text-sm font-black text-gray-900 dark:text-white">
+            <span className="text-sm font-black text-foreground">
               ${Number(entry.value).toFixed(2)}
             </span>
           </div>
@@ -38,79 +50,128 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const CustomLabel = (props: any) => {
+interface CustomLabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  value?: number;
+  index?: number;
+  totalLength?: number;
+  data?: StockHistory[];
+}
+
+const CustomLabel = (props: CustomLabelProps) => {
   const { x, y, width, value, index, totalLength, data } = props;
   
   // Only show labels for local maxima peaks to avoid clutter, or the last terminal bar
-  let isPeak = false;
-  if (data && index > 0 && index < totalLength - 1) {
-    if (value > data[index - 1].Close && value > data[index + 1].Close) {
-      isPeak = true;
-    }
-  }
-  
-  if (!isPeak && index !== totalLength - 1) return null;
+  if (!x || !y || !value || !data || index === undefined || !totalLength) return null;
+  if (totalLength > 30 && index !== totalLength - 1) return null; // Suppress labels if too many data points
+
+  const isLast = index === totalLength - 1;
+  const isPeak = index > 0 && index < totalLength - 1 && 
+                 value > data[index - 1].Close && value > data[index + 1].Close;
+
+  if (!isLast && !isPeak) return null;
 
   return (
-    <g>
+    <g transform={`translate(${x + (width || 0) / 2},${y - 12})`}>
       <rect 
-        x={x + width / 2 - 25} 
-        y={y - 25} 
-        width="50" 
-        height="20" 
-        fill="#161a22" 
-        rx="4" 
-        stroke="#ffffff20"
+        x={-24} 
+        y={-14} 
+        width={48} 
+        height={18} 
+        rx={4} 
+        fill="var(--card)" 
+        stroke="var(--border)" 
+        strokeWidth={1}
       />
       <text 
-        x={x + width / 2} 
-        y={y - 11} 
-        fill="#fff" 
-        fontSize="10" 
-        fontWeight="bold" 
+        x={0} 
+        y={-1} 
+        fill="var(--foreground)" 
+        fontSize={10} 
+        fontWeight={900} 
         textAnchor="middle"
       >
-        {Math.round(value)}
+        ${Number(value).toFixed(1)}
       </text>
     </g>
   );
 };
 
 export function VisualEngine({ history, isLoading }: VisualEngineProps) {
+  const [timeframe, setTimeframe] = useState<'7D' | '1M' | '3M' | '6M' | '1Y'>('1M');
+  const { theme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const isHades = mounted && (theme?.startsWith('hades') || resolvedTheme?.startsWith('hades'));
+
   const slicedData = useMemo(() => {
-    // Show last 30 days for a cleaner bar look
-    return history.slice(-30);
-  }, [history]);
+    let days = 21; // Default 1M (trading days)
+    switch (timeframe) {
+      case '7D': days = 5; break; // 5 trading days
+      case '1M': days = 21; break; // ~21 trading days
+      case '3M': days = 63; break; // ~63 trading days
+      case '6M': days = 126; break; // ~126 trading days
+      case '1Y': days = history.length; break;
+    }
+    return history.slice(-days);
+  }, [history, timeframe]);
 
   if (isLoading || !history.length) {
     return (
-      <div className="w-full h-80 bg-gray-100 dark:bg-[#161a22] rounded-2xl border border-gray-200 dark:border-white/5 animate-pulse flex items-center justify-center">
-        <span className="text-gray-400 dark:text-gray-600 font-bold tracking-widest text-sm">LOADING ENGINE...</span>
+      <div className="w-full h-80 bg-card rounded-2xl border border-border animate-pulse flex items-center justify-center">
+        <span className="text-muted-foreground font-bold tracking-widest text-sm">LOADING ENGINE...</span>
       </div>
     );
   }
 
-  const prices = slicedData.map(d => d.Close);
-  const minPrice = Math.min(...prices) * 0.95;
-  const maxPrice = Math.max(...prices) * 1.15; // Added dynamic offset margin to prevent top edge clipping
+  // Calculate min and max based on BOTH Close price and the SMA line
+  const allValues = slicedData.flatMap(d => [d.Close, d.sma_20].filter(v => v !== undefined && v !== null));
+  const minPrice = Math.min(...allValues) * 0.95;
+  const maxPrice = Math.max(...allValues) * 1.15; // Dynamic offset margin to prevent top edge clipping
 
   return (
-    <div className="w-full bg-white dark:bg-[#161a22] rounded-2xl border border-gray-200 dark:border-white/5 p-6 shadow-xl relative transition-colors duration-300">
-      <div className="absolute top-6 left-6 z-10">
-        <h3 className="text-gray-900 dark:text-white font-black text-lg tracking-wide">Price Trend</h3>
-        <p className="text-xs text-gray-500 font-medium">Cost Curve & Historical Movement</p>
+    <div className="w-full bg-card rounded-2xl hades:rounded-sm border border-border hades:border-t-2 hades:border-b-2 hades:border-x-0 p-6 shadow-xl hades:shadow-[0_0_30px_var(--glow-red)] relative transition-all duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 z-10 relative">
+        <div>
+          <h3 className="text-foreground font-black text-lg hades:text-xl tracking-wide hades:tracking-widest hades:uppercase hades:font-serif hades:drop-shadow-[0_0_10px_var(--glow-red)]">Price Trend</h3>
+          <p className="text-xs text-muted-foreground font-medium hades:font-bold hades:uppercase hades:tracking-widest hades:mt-1">Cost Curve & Historical Movement</p>
+        </div>
+        
+        {/* Timeframe Filters */}
+        <div className="flex bg-muted p-1 rounded-xl hades:rounded-sm border border-border">
+          {(['7D', '1M', '3M', '6M', '1Y'] as const).map((tf) => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              className={`px-3 hades:px-4 py-1.5 text-xs font-bold rounded-lg hades:rounded-sm transition-all hades:uppercase hades:tracking-wider ${
+                timeframe === tf 
+                  ? 'bg-card text-primary shadow-sm hades:shadow-[0_0_10px_var(--glow-red)] border border-border' 
+                  : 'text-muted-foreground hover:text-foreground border border-transparent'
+              }`}
+            >
+              {tf}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="h-[350px] w-full mt-10">
+      <div className="h-[350px] w-full mt-6">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={slicedData} margin={{ top: 30, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="barGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4b5563" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="#1f2937" stopOpacity={0.2} />
+                <stop offset="0%" stopColor={isHades ? "#991b1b" : "#4b5563"} stopOpacity={isHades ? 0.6 : 0.8} />
+                <stop offset="100%" stopColor={isHades ? "#450a0a" : "#1f2937"} stopOpacity={isHades ? 0.1 : 0.2} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={isHades ? "#ff000010" : "#ffffff10"} vertical={false} />
             <XAxis 
               dataKey="Date" 
               tick={{ fill: '#6b7280', fontSize: 10 }} 
@@ -131,24 +192,27 @@ export function VisualEngine({ history, isLoading }: VisualEngineProps) {
             <Bar 
               dataKey="Close" 
               radius={[4, 4, 0, 0]}
-              barSize={30}
+              maxBarSize={40}
             >
               {slicedData.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
-                  fill={index === slicedData.length - 1 ? '#22c55e' : 'url(#barGlow)'} 
+                  fill={index === slicedData.length - 1 ? (isHades ? 'var(--color-warning)' : 'var(--color-success)') : 'url(#barGlow)'} 
                 />
               ))}
-              <CustomLabel totalLength={slicedData.length} data={slicedData} />
+              {timeframe === '7D' || timeframe === '1M' ? (
+                <CustomLabel totalLength={slicedData.length} data={slicedData} />
+              ) : null}
             </Bar>
 
             {/* The Cost Curve */}
             <Line 
               type="monotone" 
               dataKey="sma_20" 
-              stroke="#fbbf24" 
+              stroke={isHades ? "var(--color-warning)" : "var(--color-warning)"} 
               strokeWidth={3} 
               dot={false}
+              style={{ filter: isHades ? 'drop-shadow(0px 0px 5px var(--color-glow-red))' : 'none' }}
               name="sma_20"
             />
           </ComposedChart>
@@ -156,8 +220,8 @@ export function VisualEngine({ history, isLoading }: VisualEngineProps) {
       </div>
       
       <div className="flex items-center gap-2 mt-4 px-2">
-        <div className="w-4 h-1 bg-[#fbbf24] rounded-full"></div>
-        <span className="text-xs text-gray-400 font-medium">Cost Curve (20-Day SMA)</span>
+        <div className="w-4 h-1 bg-warning rounded-full"></div>
+        <span className="text-xs text-muted-foreground font-medium">Cost Curve (20-Day SMA)</span>
       </div>
     </div>
   );

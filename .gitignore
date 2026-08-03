@@ -1,0 +1,74 @@
+# === Environment Variables & Secrets (NEVER COMMIT) ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+secrets.*
+
+# === Node / Next.js (Frontend) ===
+node_modules/
+.next/
+out/
+build/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.vercel/
+
+# === Python / PyTorch / FastApi (Backend) ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.venv/
+env/
+.env/
+
+# === Java / Spring Boot (Core Service) ===
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.mtj.tmp/
+*.log
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# === Database & Scratch Data ===
+*.db
+*.mv.db
+*.trace.db
+*.sqlite
+data/
+scratch/
+
+# === IDE & OS Files ===
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
